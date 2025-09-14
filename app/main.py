@@ -9,8 +9,13 @@ from pydantic import BaseModel
 import random
 from difflib import SequenceMatcher
 from fastapi.middleware.cors import CORSMiddleware  # Import CORSMiddleware
+from app.skills import skills_list
+import spacy
 
 app = FastAPI(title="Resume Verifier API", version="1.0.0")
+
+# Load the custom NER model
+ner_model = spacy.load("./skill_ner_model")
 
 # Add CORS middleware
 app.add_middleware(
@@ -20,15 +25,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Predefined skills list
-skills_list = [
-    "python", "java", "c++", "c#", "javascript", "typescript",
-    "react", "angular", "vue", "node.js", "spring boot",
-    "mysql", "postgresql", "mongodb", "oracle", "firebase",
-    "aws", "azure", "gcp", "docker", "kubernetes", "jenkins",
-    "tensorflow", "pytorch", "nlp", "machine learning", "deep learning"
-]
 
 def extract_text_from_pdf(pdf_path: str) -> str:
     """Extract text from PDF using pdfplumber."""
@@ -73,7 +69,19 @@ async def verify_resume(
 
         # Extract text and skills from resume
         text = extract_text_from_pdf(tmp_path)
-        resume_skills = extract_from_dict(skills_list, text)
+
+        if not text.strip():
+            # If pdfplumber fails, use spaCy NER model to extract text and skills
+            with pdfplumber.open(tmp_path) as pdf:
+                all_text = ""
+                for page in pdf.pages:
+                    page_text = page.extract_text()
+                    if page_text:
+                        all_text += page_text + " "
+            doc = ner_model(all_text)
+            resume_skills = set(ent.text for ent in doc.ents if ent.label_ == "SKILL")
+        else:
+            resume_skills = extract_from_dict(skills_list, text)
 
         # Fetch GitHub repositories
         api_url = f"https://api.github.com/users/{github_username}/repos"

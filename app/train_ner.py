@@ -1,8 +1,15 @@
 import spacy
 from spacy.training import Example
 import pandas as pd
+import ast  # safer than eval for literal conversion
 
-TRAIN_DATA = pd.read_csv("app/train_data.csv").values.tolist()
+TRAIN_DATA = []
+df = pd.read_csv("app/train_data.csv")
+for _, row in df.iterrows():
+    text = row[0]
+    entities = ast.literal_eval(row[1])  # convert string to list of tuples
+    annotations = {"entities": entities} # wrap in dict as required by spaCy
+    TRAIN_DATA.append((text, annotations))
 
 def train_ner(output_dir="./skill_ner_model", n_iter=30):
     nlp = spacy.blank("en")
