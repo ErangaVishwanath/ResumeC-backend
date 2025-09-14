@@ -100,13 +100,16 @@ async def verify_resume(
                 if skill.lower() in [lang.lower() for lang in repo_languages]:
                     matching_skills.add(skill)
                     break
+        
+        score = (len(matching_skills) / len(resume_skills) * 100) if resume_skills else 0
 
         return JSONResponse(content={
             "filename": file.filename,
             "resume_skills": list(resume_skills),
             "github_username": github_username,
             "matching_skills": list(matching_skills),
-            "repositories_checked": len(repositories)
+            "repositories_checked": len(repositories),
+            "score": round(score, 2)
         })
 
     except Exception as e:
