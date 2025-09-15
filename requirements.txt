@@ -4,3 +4,5 @@ pdfplumber
 requests
 spacy
 pydantic
+pandas
+python-multipart
